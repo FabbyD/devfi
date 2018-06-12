@@ -3,6 +3,7 @@ from sonar_gesture_detector import SonarGestureDetector
 
 def main():
     detector = SonarGestureDetector()
+    print("Started!")
     try:
         while True:
             detector.detect()
