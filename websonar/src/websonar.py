@@ -5,6 +5,7 @@ from sonar_driver import SonarDriver
 def main():
     driver = SonarDriver()
     detector = SonarGestureDetector()
+    driver.listeners.append(detector)
 
     print("Started!")
     try:
