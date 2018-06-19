@@ -1,6 +1,8 @@
-class GestureDetector():
+from observable import Observable
+
+class GestureDetector(Observable):
     def __init__(self):
-        pass
+        super().__init__()
 
     def detect(self):
         pass

@@ -1,9 +1,10 @@
 import serial
 from collections import deque
+from observable import Observable
 import sys
 
 
-class SonarDriver():
+class SonarDriver(Observable):
 
     def __init__(self):
         super().__init__()
@@ -13,25 +14,17 @@ class SonarDriver():
         self.max_distance = 100
         self.tolerance = 5
 
+        # Zone definitions
+        self.zones = (0,10,17,40)
+        self.OUT = len(self.zones) - 1
+        self.tolerance = 1
+        self.current_zone = self.OUT
+
         # Buffers
         self.values = deque()
         self.max_qsize = 1000
-
-        # Indicates if something is in front of the sonar
-        self.detecting = False
-
-        # Zone definitions
-        self.zones = (0,10,18,30)
-        self.OUT = len(self.zones) - 1
-        self.tolerance = 2
-        self.current_zone = self.OUT
-
-        # Event listeners
-        self.listeners = []
-
-    def notify(self, event, *args, **kwargs):
-        for listener in self.listeners:
-            getattr(listener, event)(*args, **kwargs)
+        self.next_zone = self.OUT
+        self.next_zone_count = 1
 
     def reset_values(self):
         self.values.clear()
@@ -49,17 +42,27 @@ class SonarDriver():
     def in_range(self, distance):
         return distance > 0 and distance < self.zones[-1]
 
-    def get_zone(self, distance):
-        if not self.in_range(distance):
-            return self.OUT
+    def confirm_zone(self, zone):
+        if zone == self.next_zone:
+            self.next_zone_count += 1
+        else:
+            self.next_zone_count = 1
+        self.next_zone = zone
+        return self.next_zone_count >= 7
 
+    def get_zone(self, distance):
+        next_zone = self.OUT
         start = self.zones[0]
         for i in range(1,len(self.zones)):
             end = self.zones[i]
             if distance >= start and distance < end:
-                return i-1
+                next_zone = i-1
+                break
             start = end
-        return self.OUT
+        if self.confirm_zone(next_zone):
+            return next_zone
+        else:
+            return self.current_zone
 
     def enter_zone(self, zone):
         print('enter zone ' + str(zone))
@@ -73,6 +76,7 @@ class SonarDriver():
         self.notify('on_out', self.values)
 
     def register(self, distance):
+        #print(distance)
         if len(self.values) > self.max_qsize:
             self.values.pop()
         self.values.appendleft(distance)
@@ -92,6 +96,7 @@ class SonarDriver():
     def drive(self):
         distance = self.read_distance()
         zone = self.get_zone(distance)
+
         if self.current_zone != self.OUT and zone == self.OUT and self.over_tolerance(distance, zone):
             # no longer detecting something in range
             self.out(distance)

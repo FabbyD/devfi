@@ -1,20 +1,30 @@
-import pyautogui
-from sonar_gesture_detector import SonarGestureDetector
-from sonar_driver import SonarDriver
+from tools import BrowserTool, KeyboardTool
+import platform
 
-def main():
-    driver = SonarDriver()
-    detector = SonarGestureDetector()
-    driver.listeners.append(detector)
+class WebSonar:
+    def __init__(self):
+        self.tool = BrowserTool()
+        self.has_keyboard = platform.system() == 'Linux'
+        if self.has_keyboard:
+            print('Keyboard enabled!')
 
-    print("Started!")
-    try:
-        while True:
-            driver.drive()
-    except KeyboardInterrupt as e:
-        print("ya champ!")
+    def __getattr__(self, name):
+        if hasattr(self.tool, name):
+            return getattr(self.tool, name)
+        else:
+            raise AttributeError
 
+    def on_wiggle(self):
+        if self.has_keyboard:
+            self.swap_tools()
 
-
-if __name__ == "__main__":
-    main()
+    def swap_tools(self):
+        if isinstance(self.tool, BrowserTool):
+            self.tool = KeyboardTool()
+            self.tool.show()
+            self.tool.init_pointer()
+        elif isinstance(self.tool, KeyboardTool):
+            self.tool.hide()
+            self.tool = BrowserTool()
+        else:
+            print('Wrong tool detected.')
