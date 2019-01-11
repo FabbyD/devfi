@@ -1,3 +1,8 @@
+Fonteditor
+---------------------
+
+A little python script to stretch letters of a font .-.
+
 # Usage
 
 ```
